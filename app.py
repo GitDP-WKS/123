@@ -1,5 +1,13 @@
+from __future__ import annotations
+
 import streamlit as st
 from loguru import logger
+
+from services.analytics_service import AnalyticsService
+from services.chart_service import ChartService
+from services.google_service import GoogleSheetsService
+from services.validation_service import ValidationService
+
 
 st.set_page_config(
     page_title='EV Charging Analytics',
@@ -14,44 +22,175 @@ logger.add(
     level='INFO'
 )
 
-st.title('EV Charging Analytics Platform')
-st.caption('Production-ready BI dashboard for automated PPTX generation')
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 1800px;
+    }
+    h1, h2, h3 {
+        font-family: 'Segoe UI', sans-serif;
+        letter-spacing: -0.02em;
+    }
+    .stMetric {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 14px 16px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.title('ДИНАМИКА ОБРАЩЕНИЙ ПОТРЕБИТЕЛЕЙ ПО ЭЗС')
+st.caption('Автоматическая аналитика Google Sheets → Preview → PPTX')
 
 with st.sidebar:
-    st.header('Filters')
+    st.header('Параметры отчета')
 
-    period = st.selectbox(
-        'Period',
-        ['Week', 'Month', 'Custom']
+    start_date = st.date_input(
+        'Начало периода',
+        value=None,
+        format='DD.MM.YYYY'
+    )
+
+    end_date = st.date_input(
+        'Конец периода',
+        value=None,
+        format='DD.MM.YYYY'
     )
 
     st.divider()
 
-    st.header('Manual Metrics')
+    st.header('Ручные показатели')
 
     sessions = st.number_input(
-        'Successful Sessions',
+        'Успешные сессии',
         min_value=0,
         value=7577
     )
 
     kwt = st.number_input(
-        'kWh',
+        'Количество кВт',
         min_value=0,
         value=153517
     )
 
-st.info('Foundation architecture initialized successfully.')
+    refresh = st.button('Обновить данные')
 
-col1, col2 = st.columns(2)
 
-with col1:
-    st.subheader('Topics Analytics')
-    st.empty()
+@st.cache_data(ttl=300, show_spinner='Загружаю данные из Google Sheets...')
+def load_source_data():
+    google_service = GoogleSheetsService()
+    return google_service.load_data()
 
-with col2:
-    st.subheader('TOP-5 Stations')
-    st.empty()
 
-st.subheader('Dynamics')
-st.empty()
+def normalize_source_columns(source_df):
+    """Map source Google Sheets columns by position to stable internal names."""
+    if len(source_df.columns) < 6:
+        raise ValueError('В таблице меньше 6 колонок. Нужны B, D, E, F.')
+
+    rename_mapping = {
+        source_df.columns[1]: 'Дата',
+        source_df.columns[3]: 'Тематика',
+        source_df.columns[4]: 'ЭЗС',
+        source_df.columns[5]: 'Подрядчик'
+    }
+
+    return source_df.rename(columns=rename_mapping)
+
+
+try:
+    if refresh:
+        load_source_data.clear()
+
+    validation_service = ValidationService()
+    analytics_service = AnalyticsService()
+    chart_service = ChartService()
+
+    source_df = normalize_source_columns(load_source_data())
+
+    validation_result = validation_service.validate(source_df)
+
+    for warning in validation_result.warnings:
+        st.warning(warning)
+
+    for error in validation_result.errors:
+        st.error(error)
+
+    if not validation_result.is_valid:
+        st.stop()
+
+    if not start_date or not end_date:
+        st.info('Выберите начало и конец периода слева. Например: 04.05.2026 — 10.05.2026.')
+        st.stop()
+
+    if start_date > end_date:
+        st.error('Начало периода не может быть позже конца периода.')
+        st.stop()
+
+    analytics = analytics_service.build_slide_analytics(
+        df=source_df,
+        start_date=str(start_date),
+        end_date=str(end_date)
+    )
+
+    total_calls = int(analytics.topics_df['Количество'].sum()) if not analytics.topics_df.empty else 0
+    top_station = analytics.top5_df.iloc[0]['ЭЗС'] if not analytics.top5_df.empty else 'Нет данных'
+
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1.metric('Обращений за период', total_calls)
+    kpi2.metric('Успешные сессии', sessions)
+    kpi3.metric('Количество кВт', kwt)
+
+    if analytics.topics_df.empty:
+        st.warning('За выбранный период обращений не найдено.')
+        st.stop()
+
+    topics_chart = chart_service.build_topics_chart(analytics.topics_df)
+    top5_chart = chart_service.build_top5_chart(analytics.top5_df)
+    dynamics_chart = chart_service.build_dynamics_chart(
+        analytics.dynamics_df,
+        sessions=sessions,
+        kwt=kwt
+    )
+
+    st.divider()
+
+    st.subheader('Preview будущего слайда')
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown('### Обращения по ЭЗС с разбивкой по тематикам')
+        st.plotly_chart(topics_chart, use_container_width=True)
+
+    with col2:
+        st.markdown('### ТОП 5 станций за неделю')
+        st.plotly_chart(top5_chart, use_container_width=True)
+
+    st.markdown('### Количество принятых обращений')
+    st.plotly_chart(dynamics_chart, use_container_width=True)
+
+    with st.expander('Проверка данных'):
+        st.write('TOP-5 станций')
+        st.dataframe(analytics.top5_df, use_container_width=True)
+        st.write('Тематики')
+        st.dataframe(analytics.topics_df, use_container_width=True)
+        st.write('Динамика')
+        st.dataframe(analytics.dynamics_df, use_container_width=True)
+
+    logger.info(
+        'Rendered analytics for period {} - {}. Total calls: {}. Top station: {}',
+        start_date,
+        end_date,
+        total_calls,
+        top_station
+    )
+
+except Exception as error:
+    logger.exception(error)
+    st.error('Ошибка при построении аналитики. Подробности записаны в logs/app.log')
