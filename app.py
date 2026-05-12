@@ -9,6 +9,7 @@ from services.export_service import ExportService
 from services.google_service import GoogleSheetsService
 from services.ppt_service import PPTService
 from services.validation_service import ValidationService
+from ui.styles import load_global_styles
 
 
 st.set_page_config(
@@ -24,28 +25,7 @@ logger.add(
     level='INFO'
 )
 
-st.markdown(
-    """
-    <style>
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        max-width: 1800px;
-    }
-    h1, h2, h3 {
-        font-family: 'Segoe UI', sans-serif;
-        letter-spacing: -0.02em;
-    }
-    .stMetric {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 14px 16px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(load_global_styles(), unsafe_allow_html=True)
 
 st.title('ДИНАМИКА ОБРАЩЕНИЙ ПОТРЕБИТЕЛЕЙ ПО ЭЗС')
 st.caption('Автоматическая аналитика Google Sheets → Preview → PPTX')
