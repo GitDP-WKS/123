@@ -5,6 +5,7 @@ from loguru import logger
 
 from services.analytics_service import AnalyticsService
 from services.chart_service import ChartService
+from services.export_service import ExportService
 from services.google_service import GoogleSheetsService
 from services.ppt_service import PPTService
 from services.validation_service import ValidationService
@@ -111,6 +112,7 @@ try:
     analytics_service = AnalyticsService()
     chart_service = ChartService()
     ppt_service = PPTService()
+    export_service = ExportService()
 
     source_df = normalize_source_columns(load_source_data())
 
@@ -187,11 +189,30 @@ try:
         )
 
     if generate_ppt:
+
+        topics_chart_path = export_service.export_chart_png(
+            topics_chart,
+            'topics_chart'
+        )
+
+        top5_chart_path = export_service.export_chart_png(
+            top5_chart,
+            'top5_chart'
+        )
+
+        dynamics_chart_path = export_service.export_chart_png(
+            dynamics_chart,
+            'dynamics_chart'
+        )
+
         ppt_path = ppt_service.generate_presentation(
             period_label=analytics.period_label,
             total_calls=total_calls,
             sessions=sessions,
-            kwt=kwt
+            kwt=kwt,
+            topics_chart_path=topics_chart_path,
+            top5_chart_path=top5_chart_path,
+            dynamics_chart_path=dynamics_chart_path
         )
 
         with open(ppt_path, 'rb') as ppt_file:
