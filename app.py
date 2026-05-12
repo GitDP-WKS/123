@@ -9,7 +9,6 @@ from services.export_service import ExportService
 from services.google_service import GoogleSheetsService
 from services.history_service import HistoryService
 from services.ppt_service import PPTService
-from services.preview_service import PreviewService
 from services.validation_service import ValidationService
 from ui.styles import load_global_styles
 
@@ -30,7 +29,7 @@ logger.add(
 st.markdown(load_global_styles(), unsafe_allow_html=True)
 
 st.title('ДИНАМИКА ОБРАЩЕНИЙ ПОТРЕБИТЕЛЕЙ ПО ЭЗС')
-st.caption('Автоматическая аналитика Google Sheets → Preview → PPTX')
+st.caption('Автоматическая аналитика Google Sheets → PPTX')
 
 with st.sidebar:
     st.header('Параметры отчета')
@@ -45,22 +44,6 @@ with st.sidebar:
         'Конец периода',
         value=None,
         format='DD.MM.YYYY'
-    )
-
-    st.divider()
-
-    st.header('Ручные показатели')
-
-    sessions = st.number_input(
-        'Успешные сессии',
-        min_value=0,
-        value=7577
-    )
-
-    kwt = st.number_input(
-        'Количество кВт',
-        min_value=0,
-        value=153517
     )
 
     refresh = st.button('Обновить данные')
@@ -95,7 +78,6 @@ try:
     chart_service = ChartService()
     ppt_service = PPTService()
     export_service = ExportService()
-    preview_service = PreviewService()
     history_service = HistoryService()
 
     source_df = normalize_source_columns(load_source_data())
@@ -127,43 +109,41 @@ try:
 
     total_calls = int(analytics.topics_df['Количество'].sum()) if not analytics.topics_df.empty else 0
 
-    kpi1, kpi2, kpi3 = st.columns(3)
-    kpi1.metric('Обращений за период', total_calls)
-    kpi2.metric('Успешные сессии', sessions)
-    kpi3.metric('Количество кВт', kwt)
-
     if analytics.topics_df.empty:
         st.warning('За выбранный период обращений не найдено.')
         st.stop()
 
     topics_chart = chart_service.build_topics_chart(analytics.topics_df)
     top5_chart = chart_service.build_top5_chart(analytics.top5_df)
-    dynamics_chart = chart_service.build_dynamics_chart(
-        analytics.dynamics_df,
-        sessions=sessions,
-        kwt=kwt
-    )
-
-    st.divider()
-
-    st.subheader('Preview будущего слайда')
-
-    st.markdown(
-        preview_service.render_slide_container(),
-        unsafe_allow_html=True
-    )
+    dynamics_chart = chart_service.build_dynamics_chart()
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown('### Обращения по ЭЗС с разбивкой по тематикам')
+        st.markdown('## Обращения по ЭЗС с разбивкой по тематикам')
         st.plotly_chart(topics_chart, use_container_width=True)
 
+        st.markdown('### Ручные показатели')
+
+        sessions = st.number_input(
+            'Успешные сессии',
+            min_value=0,
+            value=7577,
+            key='sessions_input'
+        )
+
+        kwt = st.number_input(
+            'Количество кВт',
+            min_value=0,
+            value=153517,
+            key='kwt_input'
+        )
+
     with col2:
-        st.markdown('### ТОП 5 станций за неделю')
+        st.markdown('## ТОП 5 станций за неделю')
         st.plotly_chart(top5_chart, use_container_width=True)
 
-    st.markdown('### Количество принятых обращений')
+    st.markdown('## Количество принятых обращений')
     st.plotly_chart(dynamics_chart, use_container_width=True)
 
     st.divider()
@@ -233,14 +213,6 @@ try:
         st.dataframe(recent_exports, use_container_width=True)
     else:
         st.info('История экспортов пока пуста.')
-
-    with st.expander('Проверка данных'):
-        st.write('TOP-5 станций')
-        st.dataframe(analytics.top5_df, use_container_width=True)
-        st.write('Тематики')
-        st.dataframe(analytics.topics_df, use_container_width=True)
-        st.write('Динамика')
-        st.dataframe(analytics.dynamics_df, use_container_width=True)
 
 except Exception as error:
     logger.exception(error)
