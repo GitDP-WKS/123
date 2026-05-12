@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "primary": "#0B5FFF",
+    "secondary": "#0F172A",
+    "background": "#F8FAFC",
+    "card": "#FFFFFF",
+    "text": "#111827",
+    "muted": "#64748B",
+    "border": "#E5E7EB"
+  },
+  "fonts": {
+    "title": "Segoe UI Semibold",
+    "body": "Segoe UI",
+    "mono": "JetBrains Mono"
+  },
+  "sizes": {
+    "title": 28,
+    "subtitle": 18,
+    "body": 12,
+    "caption": 10
+  },
+  "radius": {
+    "card": 18
+  }
+}
