@@ -21,8 +21,6 @@ class HistoryService:
         self,
         period_label: str,
         total_calls: int,
-        sessions: int,
-        kwt: int,
         ppt_path: str
     ) -> None:
 
@@ -32,8 +30,6 @@ class HistoryService:
             'generated_at': datetime.now().isoformat(),
             'period': period_label,
             'total_calls': total_calls,
-            'sessions': sessions,
-            'kwt': kwt,
             'ppt_path': ppt_path
         })
 
