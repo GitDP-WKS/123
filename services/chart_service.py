@@ -34,9 +34,9 @@ class ChartService:
         )
 
         grouped = (
-            chart_df.groupby(['Тематика', 'Подрядчик'])
-            .size()
-            .reset_index(name='Количество')
+            chart_df.groupby(['Тематика', 'Подрядчик'])['Количество']
+            .sum()
+            .reset_index()
         )
 
         totals = (
@@ -61,44 +61,30 @@ class ChartService:
 
         figure = go.Figure()
 
-        colors = {
-            'E-Prom': '#BFBFBF',
-            'NSP': '#0070C0',
-            'Прочие': '#00B050'
-        }
-
         tick_positions = []
         tick_labels = []
 
-        total_topics = len(topics)
-
-        spacing = 1.35
+        spacing = 1.1
 
         for idx, topic in enumerate(topics):
 
             topic_data = grouped[grouped['Тематика'] == topic]
 
-            y_base = (total_topics - idx) * spacing
+            y_base = (len(topics) - idx) * spacing
 
-            tick_positions.append(y_base + 0.10)
-            tick_labels.append(self._wrap_text(topic, width=40))
+            tick_positions.append(y_base + 0.08)
+            tick_labels.append(self._wrap_text(topic, width=32))
 
-            e_prom_value = 0
-            nsp_value = 0
-
-            e_prom_row = topic_data[
+            e_prom = topic_data[
                 topic_data['Подрядчик'] == 'E-Prom'
             ]
 
-            if not e_prom_row.empty:
-                e_prom_value = int(e_prom_row['Количество'].iloc[0])
-
-            nsp_row = topic_data[
+            nsp = topic_data[
                 topic_data['Подрядчик'] == 'NSP'
             ]
 
-            if not nsp_row.empty:
-                nsp_value = int(nsp_row['Количество'].iloc[0])
+            e_prom_value = int(e_prom['Количество'].iloc[0]) if not e_prom.empty else 0
+            nsp_value = int(nsp['Количество'].iloc[0]) if not nsp.empty else 0
 
             if 'прочие' in topic.lower():
 
@@ -109,12 +95,12 @@ class ChartService:
                         x=[total_other],
                         y=[y_base],
                         orientation='h',
-                        width=0.18,
-                        marker_color=colors['Прочие'],
+                        width=0.20,
+                        marker_color='#00B050',
                         text=[total_other],
                         textposition='outside',
-                        textfont=dict(size=13),
-                        name='Прочие вопросы',
+                        textfont=dict(size=15),
+                        name='Прочие',
                         showlegend=True
                     )
                 )
@@ -122,34 +108,32 @@ class ChartService:
                 continue
 
             if e_prom_value > 0:
-
                 figure.add_trace(
                     go.Bar(
                         x=[e_prom_value],
                         y=[y_base],
                         orientation='h',
-                        width=0.15,
-                        marker_color=colors['E-Prom'],
+                        width=0.18,
+                        marker_color='#BFBFBF',
                         text=[e_prom_value],
                         textposition='outside',
-                        textfont=dict(size=12),
+                        textfont=dict(size=14, color='#111111'),
                         name='E-Prom',
                         showlegend=(idx == 1)
                     )
                 )
 
             if nsp_value > 0:
-
                 figure.add_trace(
                     go.Bar(
                         x=[nsp_value],
-                        y=[y_base + 0.18],
+                        y=[y_base + 0.22],
                         orientation='h',
-                        width=0.15,
-                        marker_color=colors['NSP'],
+                        width=0.18,
+                        marker_color='#0070C0',
                         text=[nsp_value],
                         textposition='outside',
-                        textfont=dict(size=12),
+                        textfont=dict(size=14, color='#111111'),
                         name='NSP',
                         showlegend=(idx == 1)
                     )
@@ -159,23 +143,23 @@ class ChartService:
 
         figure.update_layout(
             template='simple_white',
-            height=520,
-            margin=dict(l=320, r=60, t=10, b=45),
+            height=500,
+            margin=dict(l=250, r=70, t=10, b=30),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
             font=dict(
                 family='Segoe UI',
                 size=11,
-                color='#333333'
+                color='#222222'
             ),
-            bargap=0.30,
             legend=dict(
                 orientation='h',
-                y=-0.10,
+                y=-0.08,
                 x=0.5,
                 xanchor='center',
                 font=dict(size=12)
             ),
+            bargap=0.10,
             xaxis=dict(
                 visible=False,
                 range=[0, max_value + 2]
@@ -184,7 +168,7 @@ class ChartService:
                 tickmode='array',
                 tickvals=tick_positions,
                 ticktext=tick_labels,
-                tickfont=dict(size=12),
+                tickfont=dict(size=11),
                 showgrid=False
             )
         )
@@ -194,7 +178,10 @@ class ChartService:
     def build_top5_chart(self, df: pd.DataFrame):
 
         chart_df = df.copy()
-        chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(lambda x: self._wrap_text(x, width=14))
+
+        chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(
+            lambda x: self._wrap_text(x, width=8)
+        )
 
         figure = go.Figure()
 
@@ -203,25 +190,34 @@ class ChartService:
             y=chart_df['Количество'],
             text=chart_df['Количество'],
             textposition='outside',
+            textfont=dict(size=14, color='#111111'),
             marker_color='#0070C0',
-            width=0.45
+            width=0.55
         )
 
         figure.update_layout(
             template='simple_white',
-            height=300,
-            margin=dict(l=10, r=10, t=20, b=60),
+            height=390,
+            margin=dict(l=10, r=10, t=20, b=90),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
             font=dict(
                 family='Segoe UI',
-                size=11
+                size=11,
+                color='#222222'
             ),
             showlegend=False
         )
 
-        figure.update_xaxes(showgrid=False)
-        figure.update_yaxes(showgrid=False)
+        figure.update_xaxes(
+            showgrid=False,
+            tickfont=dict(size=10)
+        )
+
+        figure.update_yaxes(
+            showgrid=False,
+            visible=False
+        )
 
         return figure
 
