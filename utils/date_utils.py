@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any
 
 import pandas as pd
-from loguru import logger
 
 
 DATE_FORMATS = [
@@ -23,23 +22,29 @@ DATE_FORMATS = [
 ]
 
 
-def parse_single_date(value: Any) -> pd.Timestamp | pd.NaT:
-    """Parse one Google Sheets date value safely.
+EMPTY_VALUES = {
+    '',
+    'nan',
+    'none',
+    'null',
+    '-',
+    '--'
+}
 
-    Supports:
-    - dd.mm.yyyy / dd.mm.yy
-    - dd/mm/yyyy / dd-mm-yyyy
-    - yyyy-mm-dd
-    - datetime strings with time
-    - Google/Excel serial dates
-    """
+
+def parse_single_date(value: Any) -> pd.Timestamp | pd.NaT:
 
     if value is None or pd.isna(value):
         return pd.NaT
 
+    if isinstance(value, pd.Timestamp):
+        return value
+
     raw = str(value).strip()
 
-    if not raw:
+    normalized = raw.lower().strip()
+
+    if normalized in EMPTY_VALUES:
         return pd.NaT
 
     raw = (
@@ -47,12 +52,13 @@ def parse_single_date(value: Any) -> pd.Timestamp | pd.NaT:
         .replace(',', '.')
         .replace('г.', '')
         .replace('г', '')
+        .replace('  ', ' ')
         .strip()
     )
 
-    # Excel / Google Sheets serial date, for example 45778
     try:
         numeric_value = float(raw)
+
         if 30000 <= numeric_value <= 60000:
             return pd.to_datetime(
                 numeric_value,
@@ -60,23 +66,29 @@ def parse_single_date(value: Any) -> pd.Timestamp | pd.NaT:
                 origin='1899-12-30',
                 errors='coerce'
             )
+
     except Exception:
         pass
 
     for date_format in DATE_FORMATS:
         try:
-            return pd.Timestamp(datetime.strptime(raw, date_format))
+            return pd.Timestamp(
+                datetime.strptime(raw, date_format)
+            )
         except ValueError:
             continue
 
-    parsed = pd.to_datetime(raw, errors='coerce', dayfirst=True)
-
-    if pd.isna(parsed):
-        logger.debug('Unparsed date value: {}', value)
-        return pd.NaT
+    parsed = pd.to_datetime(
+        raw,
+        errors='coerce',
+        dayfirst=True
+    )
 
     return parsed
 
 
 def parse_date_series(series: pd.Series) -> pd.Series:
-    return series.apply(parse_single_date)
+
+    parsed_series = series.apply(parse_single_date)
+
+    return parsed_series
