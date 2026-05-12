@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import textwrap
-
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 
 
 class ChartService:
-    """Unified chart rendering layer."""
 
     @staticmethod
     def _wrap_text(value: str, width: int = 18) -> str:
@@ -16,139 +13,142 @@ class ChartService:
 
     def build_topics_chart(self, df: pd.DataFrame):
 
+        ordered_topics = [
+            'Прочие вопросы без привязки к станции + Чат Бот',
+            'в мобильном приложении ЭЗС не в сети',
+            'самопроизвольное прерывание зарядной сессии',
+            'станция недоступна (мониторинг КЦ)',
+            'низкая скорость зарядки',
+            'неисправность или загрязнение коннектора ЭЗС',
+            'коннектор не извлекается из порта зарядки электромобиля',
+            'мобильное приложение не запускает зарядную сессию'
+        ]
+
         chart_df = df.copy()
+        chart_df['Тематика'] = chart_df['Тематика'].astype(str).str.strip()
 
-        chart_df['Тематика'] = chart_df['Тематика'].apply(
-            lambda x: self._wrap_text(x, width=24)
+        grouped = (
+            chart_df.groupby(['Тематика', 'Подрядчик'])
+            .size()
+            .reset_index(name='Количество')
         )
 
-        figure = px.bar(
-            chart_df,
-            y='Тематика',
-            x='Количество',
-            color='Подрядчик',
-            orientation='h',
-            barmode='group',
-            text='Количество',
-            color_discrete_map={
-                'NSP': '#0B5FFF',
-                'E-Prom': '#111827',
-                'Прочие': '#94A3B8'
-            }
-        )
+        figure = go.Figure()
 
-        figure.update_traces(
-            textposition='outside',
-            cliponaxis=False
-        )
+        colors = {
+            'E-Prom': '#BFBFBF',
+            'NSP': '#0070C0',
+            'Прочие': '#00B050'
+        }
+
+        for idx, topic in enumerate(reversed(ordered_topics)):
+
+            topic_data = grouped[grouped['Тематика'] == topic]
+            base_y = idx * 2
+
+            for offset, contractor in enumerate(['E-Prom', 'NSP', 'Прочие']):
+
+                row = topic_data[topic_data['Подрядчик'] == contractor]
+                value = int(row['Количество'].iloc[0]) if not row.empty else 0
+
+                if value <= 0:
+                    continue
+
+                figure.add_trace(
+                    go.Bar(
+                        x=[value],
+                        y=[base_y + offset * 0.28],
+                        orientation='h',
+                        width=0.22,
+                        marker_color=colors[contractor],
+                        text=[value],
+                        textposition='outside',
+                        name=contractor,
+                        showlegend=(idx == 0)
+                    )
+                )
 
         figure.update_layout(
-            template='plotly_white',
-            height=430,
-            margin=dict(l=20, r=60, t=50, b=20),
-            legend_title='Подрядчик',
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(
-                family='Segoe UI',
-                size=12,
-                color='#111827'
+            template='simple_white',
+            height=720,
+            margin=dict(l=430, r=120, t=30, b=80),
+            paper_bgcolor='#F2F2F2',
+            plot_bgcolor='#F2F2F2',
+            font=dict(family='Segoe UI', size=15, color='#333333'),
+            bargap=0.55,
+            legend=dict(
+                orientation='h',
+                y=-0.12,
+                x=0.5,
+                xanchor='center'
+            ),
+            xaxis=dict(visible=False, range=[0, 20]),
+            yaxis=dict(
+                tickmode='array',
+                tickvals=[i * 2 + 0.28 for i in range(len(ordered_topics))],
+                ticktext=list(reversed(ordered_topics)),
+                showgrid=False
             )
         )
-
-        figure.update_xaxes(gridcolor='#E5E7EB')
-        figure.update_yaxes(showgrid=False)
 
         return figure
 
     def build_top5_chart(self, df: pd.DataFrame):
 
         chart_df = df.copy()
+        chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(lambda x: self._wrap_text(x, width=16))
 
-        chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(
-            lambda x: self._wrap_text(x, width=16)
-        )
+        figure = go.Figure()
 
-        figure = px.bar(
-            chart_df,
-            x='ЭЗС',
-            y='Количество',
-            text='Количество',
-            color='Количество',
-            color_continuous_scale=['#DCEBFF', '#0B5FFF']
-        )
-
-        figure.update_traces(
+        figure.add_bar(
+            x=chart_df['ЭЗС'],
+            y=chart_df['Количество'],
+            text=chart_df['Количество'],
             textposition='outside',
-            cliponaxis=False
+            marker_color='#0070C0'
         )
 
         figure.update_layout(
-            template='plotly_white',
+            template='simple_white',
             height=430,
-            margin=dict(l=20, r=20, t=50, b=90),
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(
-                family='Segoe UI',
-                size=12,
-                color='#111827'
-            ),
-            coloraxis_showscale=False
+            margin=dict(l=20, r=20, t=40, b=100),
+            paper_bgcolor='#F2F2F2',
+            plot_bgcolor='#F2F2F2',
+            showlegend=False
         )
 
-        figure.update_xaxes(
-            tickangle=0,
-            showgrid=False
-        )
-
-        figure.update_yaxes(gridcolor='#E5E7EB')
+        figure.update_xaxes(showgrid=False)
+        figure.update_yaxes(showgrid=False)
 
         return figure
 
     def build_dynamics_chart(self):
 
-        months = [
-            'Май 2025', 'Июн 2025', 'Июл 2025', 'Авг 2025',
-            'Сен 2025', 'Окт 2025', 'Ноя 2025', 'Дек 2025',
-            'Янв 2026', 'Фев 2026', 'Мар 2026', 'Апр 2026', 'Май 2026'
-        ]
+        months = ['май.25','июн.25','июл.25','авг.25','сен.25','окт.25','ноя.25','дек.25','янв.26','фев.26','мар.26','апр.26','май.26']
+        values = [191,272,290,249,220,238,243,257,246,221,211,237,95]
 
-        values = [120, 135, 128, 144, 151, 165, 170, 168, 180, 176, 184, 193, 205]
+        colors = ['#5B84D7','#ED8B47','#B9B9B9','#F4C22B','#7FB2E5','#84B45F','#4C6796','#B56B33','#8A8A8A','#B29227','#4B79A6','#688C4E','#9DB2D9']
 
-        colors = [
-            '#0B5FFF', '#111827', '#16A34A', '#9333EA',
-            '#EA580C', '#0891B2', '#DC2626', '#7C3AED',
-            '#2563EB', '#059669', '#D97706', '#DB2777', '#0F172A'
-        ]
+        figure = go.Figure()
 
-        figure = go.Figure(
-            data=[
-                go.Bar(
-                    x=months,
-                    y=values,
-                    text=values,
-                    textposition='outside',
-                    marker_color=colors
-                )
-            ]
+        figure.add_bar(
+            x=months,
+            y=values,
+            text=values,
+            textposition='inside',
+            marker_color=colors
         )
 
         figure.update_layout(
-            template='plotly_white',
-            height=430,
-            margin=dict(l=20, r=20, t=50, b=40),
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(
-                family='Segoe UI',
-                size=12,
-                color='#111827'
-            ),
+            template='simple_white',
+            height=420,
+            margin=dict(l=20, r=20, t=40, b=20),
+            paper_bgcolor='#F2F2F2',
+            plot_bgcolor='#F2F2F2',
             showlegend=False
         )
 
         figure.update_xaxes(showgrid=False)
-        figure.update_yaxes(gridcolor='#E5E7EB')
+        figure.update_yaxes(showgrid=False, visible=False)
 
         return figure
