@@ -72,14 +72,16 @@ class ChartService:
 
         total_topics = len(topics)
 
+        spacing = 1.35
+
         for idx, topic in enumerate(topics):
 
             topic_data = grouped[grouped['Тематика'] == topic]
 
-            y_base = (total_topics - idx) * 2
+            y_base = (total_topics - idx) * spacing
 
-            tick_positions.append(y_base + 0.15)
-            tick_labels.append(topic)
+            tick_positions.append(y_base + 0.10)
+            tick_labels.append(self._wrap_text(topic, width=40))
 
             e_prom_value = 0
             nsp_value = 0
@@ -107,11 +109,11 @@ class ChartService:
                         x=[total_other],
                         y=[y_base],
                         orientation='h',
-                        width=0.26,
+                        width=0.18,
                         marker_color=colors['Прочие'],
                         text=[total_other],
                         textposition='outside',
-                        textfont=dict(size=16),
+                        textfont=dict(size=13),
                         name='Прочие вопросы',
                         showlegend=True
                     )
@@ -126,11 +128,11 @@ class ChartService:
                         x=[e_prom_value],
                         y=[y_base],
                         orientation='h',
-                        width=0.22,
+                        width=0.15,
                         marker_color=colors['E-Prom'],
                         text=[e_prom_value],
                         textposition='outside',
-                        textfont=dict(size=15),
+                        textfont=dict(size=12),
                         name='E-Prom',
                         showlegend=(idx == 1)
                     )
@@ -141,13 +143,13 @@ class ChartService:
                 figure.add_trace(
                     go.Bar(
                         x=[nsp_value],
-                        y=[y_base + 0.32],
+                        y=[y_base + 0.18],
                         orientation='h',
-                        width=0.22,
+                        width=0.15,
                         marker_color=colors['NSP'],
                         text=[nsp_value],
                         textposition='outside',
-                        textfont=dict(size=15),
+                        textfont=dict(size=12),
                         name='NSP',
                         showlegend=(idx == 1)
                     )
@@ -157,32 +159,32 @@ class ChartService:
 
         figure.update_layout(
             template='simple_white',
-            height=760,
-            margin=dict(l=460, r=120, t=20, b=90),
+            height=520,
+            margin=dict(l=320, r=60, t=10, b=45),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
             font=dict(
                 family='Segoe UI',
-                size=15,
+                size=11,
                 color='#333333'
             ),
-            bargap=0.68,
+            bargap=0.30,
             legend=dict(
                 orientation='h',
-                y=-0.14,
+                y=-0.10,
                 x=0.5,
                 xanchor='center',
-                font=dict(size=16)
+                font=dict(size=12)
             ),
             xaxis=dict(
                 visible=False,
-                range=[0, max_value + 4]
+                range=[0, max_value + 2]
             ),
             yaxis=dict(
                 tickmode='array',
                 tickvals=tick_positions,
                 ticktext=tick_labels,
-                tickfont=dict(size=16),
+                tickfont=dict(size=12),
                 showgrid=False
             )
         )
@@ -192,7 +194,7 @@ class ChartService:
     def build_top5_chart(self, df: pd.DataFrame):
 
         chart_df = df.copy()
-        chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(lambda x: self._wrap_text(x, width=16))
+        chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(lambda x: self._wrap_text(x, width=14))
 
         figure = go.Figure()
 
@@ -201,15 +203,20 @@ class ChartService:
             y=chart_df['Количество'],
             text=chart_df['Количество'],
             textposition='outside',
-            marker_color='#0070C0'
+            marker_color='#0070C0',
+            width=0.45
         )
 
         figure.update_layout(
             template='simple_white',
-            height=430,
-            margin=dict(l=20, r=20, t=40, b=100),
+            height=300,
+            margin=dict(l=10, r=10, t=20, b=60),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
+            font=dict(
+                family='Segoe UI',
+                size=11
+            ),
             showlegend=False
         )
 
@@ -232,15 +239,20 @@ class ChartService:
             y=values,
             text=values,
             textposition='inside',
-            marker_color=colors
+            marker_color=colors,
+            width=0.62
         )
 
         figure.update_layout(
             template='simple_white',
-            height=420,
-            margin=dict(l=20, r=20, t=40, b=20),
+            height=250,
+            margin=dict(l=10, r=10, t=20, b=10),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
+            font=dict(
+                family='Segoe UI',
+                size=10
+            ),
             showlegend=False
         )
 
