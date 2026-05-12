@@ -19,15 +19,17 @@ class ChartService:
         chart_df = df.copy()
 
         chart_df['Тематика'] = chart_df['Тематика'].apply(
-            lambda x: self._wrap_text(x, width=14)
+            lambda x: self._wrap_text(x, width=24)
         )
 
         figure = px.bar(
             chart_df,
-            x='Тематика',
-            y='Количество',
+            y='Тематика',
+            x='Количество',
             color='Подрядчик',
+            orientation='h',
             barmode='group',
+            text='Количество',
             color_discrete_map={
                 'NSP': '#0B5FFF',
                 'E-Prom': '#111827',
@@ -35,10 +37,15 @@ class ChartService:
             }
         )
 
+        figure.update_traces(
+            textposition='outside',
+            cliponaxis=False
+        )
+
         figure.update_layout(
             template='plotly_white',
             height=430,
-            margin=dict(l=20, r=20, t=50, b=100),
+            margin=dict(l=20, r=60, t=50, b=20),
             legend_title='Подрядчик',
             plot_bgcolor='white',
             paper_bgcolor='white',
@@ -50,12 +57,11 @@ class ChartService:
         )
 
         figure.update_xaxes(
-            tickangle=0,
-            showgrid=False
+            gridcolor='#E5E7EB'
         )
 
         figure.update_yaxes(
-            gridcolor='#E5E7EB'
+            showgrid=False
         )
 
         return figure
@@ -65,23 +71,27 @@ class ChartService:
         chart_df = df.copy()
 
         chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(
-            lambda x: self._wrap_text(x, width=28)
+            lambda x: self._wrap_text(x, width=16)
         )
 
         figure = px.bar(
             chart_df,
-            x='Количество',
-            y='ЭЗС',
-            orientation='h',
+            x='ЭЗС',
+            y='Количество',
+            text='Количество',
             color='Количество',
             color_continuous_scale=['#DCEBFF', '#0B5FFF']
+        )
+
+        figure.update_traces(
+            textposition='outside',
+            cliponaxis=False
         )
 
         figure.update_layout(
             template='plotly_white',
             height=430,
-            margin=dict(l=20, r=20, t=50, b=20),
-            yaxis={'categoryorder': 'total ascending'},
+            margin=dict(l=20, r=20, t=50, b=90),
             plot_bgcolor='white',
             paper_bgcolor='white',
             font=dict(
@@ -93,11 +103,12 @@ class ChartService:
         )
 
         figure.update_xaxes(
-            gridcolor='#E5E7EB'
+            tickangle=0,
+            showgrid=False
         )
 
         figure.update_yaxes(
-            showgrid=False
+            gridcolor='#E5E7EB'
         )
 
         return figure
@@ -116,7 +127,9 @@ class ChartService:
                 x=df['Дата'],
                 y=df['Количество'],
                 name='Обращения',
-                marker_color='#0B5FFF'
+                marker_color='#0B5FFF',
+                text=df['Количество'],
+                textposition='outside'
             )
         )
 
@@ -124,7 +137,9 @@ class ChartService:
             go.Scatter(
                 x=df['Дата'],
                 y=[sessions for _ in range(len(df))],
-                mode='lines+markers',
+                mode='lines+markers+text',
+                text=[sessions for _ in range(len(df))],
+                textposition='top center',
                 name='Сессии',
                 line=dict(
                     color='#111827',
