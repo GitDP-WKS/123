@@ -7,6 +7,8 @@ from loguru import logger
 from pptx import Presentation
 from pptx.util import Inches
 
+from services.layout_service import LayoutService
+
 
 EXPORTS_DIR = Path('data/exports')
 EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -14,6 +16,10 @@ EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 class PPTService:
     """Production PPTX rendering engine."""
+
+    def __init__(self):
+        self.layout_service = LayoutService()
+        self.layout = self.layout_service.load_layout()
 
     def generate_presentation(
         self,
@@ -28,17 +34,24 @@ class PPTService:
 
         presentation = Presentation()
 
-        presentation.slide_width = Inches(13.33)
-        presentation.slide_height = Inches(7.5)
+        presentation.slide_width = Inches(
+            self.layout['slide']['width']
+        )
+
+        presentation.slide_height = Inches(
+            self.layout['slide']['height']
+        )
 
         slide_layout = presentation.slide_layouts[6]
         slide = presentation.slides.add_slide(slide_layout)
 
+        title_layout = self.layout['title']
+
         title_box = slide.shapes.add_textbox(
-            Inches(0.3),
-            Inches(0.2),
-            Inches(12.5),
-            Inches(0.5)
+            Inches(title_layout['x']),
+            Inches(title_layout['y']),
+            Inches(title_layout['w']),
+            Inches(title_layout['h'])
         )
 
         title_frame = title_box.text_frame
@@ -64,30 +77,39 @@ class PPTService:
         )
 
         if topics_chart_path:
+
+            chart_layout = self.layout['topics_chart']
+
             slide.shapes.add_picture(
                 topics_chart_path,
-                Inches(0.3),
-                Inches(1.2),
-                Inches(6.1),
-                Inches(2.6)
+                Inches(chart_layout['x']),
+                Inches(chart_layout['y']),
+                Inches(chart_layout['w']),
+                Inches(chart_layout['h'])
             )
 
         if top5_chart_path:
+
+            chart_layout = self.layout['top5_chart']
+
             slide.shapes.add_picture(
                 top5_chart_path,
-                Inches(6.7),
-                Inches(1.2),
-                Inches(6.0),
-                Inches(2.6)
+                Inches(chart_layout['x']),
+                Inches(chart_layout['y']),
+                Inches(chart_layout['w']),
+                Inches(chart_layout['h'])
             )
 
         if dynamics_chart_path:
+
+            chart_layout = self.layout['dynamics_chart']
+
             slide.shapes.add_picture(
                 dynamics_chart_path,
-                Inches(0.3),
-                Inches(4.1),
-                Inches(12.4),
-                Inches(2.8)
+                Inches(chart_layout['x']),
+                Inches(chart_layout['y']),
+                Inches(chart_layout['w']),
+                Inches(chart_layout['h'])
             )
 
         generated_at = datetime.now().strftime('%Y%m%d_%H%M%S')
