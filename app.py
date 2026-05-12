@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import streamlit as st
 from loguru import logger
 
@@ -15,7 +17,7 @@ from ui.styles import load_global_styles
 
 st.set_page_config(
     page_title='EV Charging Analytics',
-    layout='wide',
+    layout='centered',
     initial_sidebar_state='expanded'
 )
 
@@ -34,15 +36,18 @@ st.caption('Автоматическая аналитика Google Sheets → PP
 with st.sidebar:
     st.header('Параметры отчета')
 
+    today = date.today()
+    default_start = today - timedelta(days=6)
+
     start_date = st.date_input(
         'Начало периода',
-        value=None,
+        value=default_start,
         format='DD.MM.YYYY'
     )
 
     end_date = st.date_input(
         'Конец периода',
-        value=None,
+        value=today,
         format='DD.MM.YYYY'
     )
 
@@ -84,21 +89,19 @@ try:
 
     validation_result = validation_service.validate(source_df)
 
-    for warning in validation_result.warnings:
-        st.warning(warning)
+    critical_errors = [
+        error for error in validation_result.errors
+        if 'invalid dates detected' not in error.lower()
+    ]
 
-    for error in validation_result.errors:
+    for warning in validation_result.warnings:
+        if 'invalid dates detected' not in warning.lower():
+            st.warning(warning)
+
+    for error in critical_errors:
         st.error(error)
 
-    if not validation_result.is_valid:
-        st.stop()
-
-    if not start_date or not end_date:
-        st.info('Выберите начало и конец периода слева. Например: 04.05.2026 — 10.05.2026.')
-        st.stop()
-
-    if start_date > end_date:
-        st.error('Начало периода не может быть позже конца периода.')
+    if critical_errors:
         st.stop()
 
     analytics = analytics_service.build_slide_analytics(
@@ -117,13 +120,13 @@ try:
     top5_chart = chart_service.build_top5_chart(analytics.top5_df)
     dynamics_chart = chart_service.build_dynamics_chart()
 
-    st.markdown('## Обращения по ЭЗС с разбивкой по тематикам')
+    st.markdown('### Обращения по ЭЗС с разбивкой по тематикам')
     st.plotly_chart(topics_chart, use_container_width=True)
 
-    st.markdown('## ТОП 5 станций за неделю')
+    st.markdown('### ТОП 5 станций за неделю')
     st.plotly_chart(top5_chart, use_container_width=True)
 
-    st.markdown('## Количество принятых обращений')
+    st.markdown('### Количество принятых обращений')
     st.plotly_chart(dynamics_chart, use_container_width=True)
 
     st.divider()
@@ -175,17 +178,6 @@ try:
             )
 
         st.success('PPTX презентация успешно сгенерирована.')
-
-    st.divider()
-
-    st.subheader('История экспортов')
-
-    recent_exports = history_service.get_recent_exports()
-
-    if recent_exports:
-        st.dataframe(recent_exports, use_container_width=True)
-    else:
-        st.info('История экспортов пока пуста.')
 
 except Exception as error:
     logger.exception(error)
