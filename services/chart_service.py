@@ -13,25 +13,51 @@ class ChartService:
 
     def build_topics_chart(self, df: pd.DataFrame):
 
-        ordered_topics = [
-            'Прочие вопросы без привязки к станции + Чат Бот',
-            'в мобильном приложении ЭЗС не в сети',
-            'самопроизвольное прерывание зарядной сессии',
-            'станция недоступна (мониторинг КЦ)',
-            'низкая скорость зарядки',
-            'неисправность или загрязнение коннектора ЭЗС',
-            'коннектор не извлекается из порта зарядки электромобиля',
-            'мобильное приложение не запускает зарядную сессию'
-        ]
-
         chart_df = df.copy()
-        chart_df['Тематика'] = chart_df['Тематика'].astype(str).str.strip()
+
+        chart_df['Тематика'] = (
+            chart_df['Тематика']
+            .astype(str)
+            .str.strip()
+        )
+
+        chart_df['Подрядчик'] = (
+            chart_df['Подрядчик']
+            .astype(str)
+            .str.strip()
+            .replace({
+                'ЗЭТЗ': 'NSP',
+                'NSP': 'NSP',
+                'E-Prom': 'E-Prom',
+                'Е-Пром': 'E-Prom'
+            })
+        )
 
         grouped = (
             chart_df.groupby(['Тематика', 'Подрядчик'])
             .size()
             .reset_index(name='Количество')
         )
+
+        totals = (
+            grouped.groupby('Тематика')['Количество']
+            .sum()
+            .reset_index()
+            .sort_values('Количество', ascending=False)
+        )
+
+        topics = totals['Тематика'].tolist()
+
+        other_topic = None
+
+        for topic in topics:
+            if 'прочие' in topic.lower():
+                other_topic = topic
+                break
+
+        if other_topic:
+            topics.remove(other_topic)
+            topics.insert(0, other_topic)
 
         figure = go.Figure()
 
@@ -41,29 +67,76 @@ class ChartService:
             'Прочие': '#00B050'
         }
 
-        for idx, topic in enumerate(reversed(ordered_topics)):
+        for idx, topic in enumerate(reversed(topics)):
 
             topic_data = grouped[grouped['Тематика'] == topic]
             base_y = idx * 2
 
-            for offset, contractor in enumerate(['E-Prom', 'NSP', 'Прочие']):
+            e_prom_value = 0
+            nsp_value = 0
 
-                row = topic_data[topic_data['Подрядчик'] == contractor]
-                value = int(row['Количество'].iloc[0]) if not row.empty else 0
+            e_prom_row = topic_data[
+                topic_data['Подрядчик'] == 'E-Prom'
+            ]
 
-                if value <= 0:
-                    continue
+            if not e_prom_row.empty:
+                e_prom_value = int(e_prom_row['Количество'].iloc[0])
+
+            nsp_row = topic_data[
+                topic_data['Подрядчик'] == 'NSP'
+            ]
+
+            if not nsp_row.empty:
+                nsp_value = int(nsp_row['Количество'].iloc[0])
+
+            if 'прочие' in topic.lower():
+
+                total_other = e_prom_value + nsp_value
 
                 figure.add_trace(
                     go.Bar(
-                        x=[value],
-                        y=[base_y + offset * 0.28],
+                        x=[total_other],
+                        y=[base_y],
+                        orientation='h',
+                        width=0.24,
+                        marker_color=colors['Прочие'],
+                        text=[total_other],
+                        textposition='outside',
+                        name='Прочие вопросы',
+                        showlegend=(idx == 0)
+                    )
+                )
+
+                continue
+
+            if e_prom_value > 0:
+
+                figure.add_trace(
+                    go.Bar(
+                        x=[e_prom_value],
+                        y=[base_y],
                         orientation='h',
                         width=0.22,
-                        marker_color=colors[contractor],
-                        text=[value],
+                        marker_color=colors['E-Prom'],
+                        text=[e_prom_value],
                         textposition='outside',
-                        name=contractor,
+                        name='E-Prom',
+                        showlegend=(idx == 0)
+                    )
+                )
+
+            if nsp_value > 0:
+
+                figure.add_trace(
+                    go.Bar(
+                        x=[nsp_value],
+                        y=[base_y + 0.30],
+                        orientation='h',
+                        width=0.22,
+                        marker_color=colors['NSP'],
+                        text=[nsp_value],
+                        textposition='outside',
+                        name='NSP',
                         showlegend=(idx == 0)
                     )
                 )
@@ -74,19 +147,26 @@ class ChartService:
             margin=dict(l=430, r=120, t=30, b=80),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
-            font=dict(family='Segoe UI', size=15, color='#333333'),
-            bargap=0.55,
+            font=dict(
+                family='Segoe UI',
+                size=15,
+                color='#333333'
+            ),
+            bargap=0.60,
             legend=dict(
                 orientation='h',
                 y=-0.12,
                 x=0.5,
                 xanchor='center'
             ),
-            xaxis=dict(visible=False, range=[0, 20]),
+            xaxis=dict(
+                visible=False,
+                range=[0, max(grouped['Количество'].max() + 5, 20)]
+            ),
             yaxis=dict(
                 tickmode='array',
-                tickvals=[i * 2 + 0.28 for i in range(len(ordered_topics))],
-                ticktext=list(reversed(ordered_topics)),
+                tickvals=[i * 2 + 0.15 for i in range(len(topics))],
+                ticktext=list(reversed(topics)),
                 showgrid=False
             )
         )
