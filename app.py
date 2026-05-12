@@ -6,6 +6,7 @@ from loguru import logger
 from services.analytics_service import AnalyticsService
 from services.chart_service import ChartService
 from services.google_service import GoogleSheetsService
+from services.ppt_service import PPTService
 from services.validation_service import ValidationService
 
 
@@ -89,7 +90,6 @@ def load_source_data():
 
 
 def normalize_source_columns(source_df):
-    """Map source Google Sheets columns by position to stable internal names."""
     if len(source_df.columns) < 6:
         raise ValueError('В таблице меньше 6 колонок. Нужны B, D, E, F.')
 
@@ -110,6 +110,7 @@ try:
     validation_service = ValidationService()
     analytics_service = AnalyticsService()
     chart_service = ChartService()
+    ppt_service = PPTService()
 
     source_df = normalize_source_columns(load_source_data())
 
@@ -139,7 +140,6 @@ try:
     )
 
     total_calls = int(analytics.topics_df['Количество'].sum()) if not analytics.topics_df.empty else 0
-    top_station = analytics.top5_df.iloc[0]['ЭЗС'] if not analytics.top5_df.empty else 'Нет данных'
 
     kpi1, kpi2, kpi3 = st.columns(3)
     kpi1.metric('Обращений за период', total_calls)
@@ -175,6 +175,36 @@ try:
     st.markdown('### Количество принятых обращений')
     st.plotly_chart(dynamics_chart, use_container_width=True)
 
+    st.divider()
+
+    export_col1, export_col2 = st.columns([1, 2])
+
+    with export_col1:
+        generate_ppt = st.button(
+            'Сгенерировать PPTX',
+            use_container_width=True,
+            type='primary'
+        )
+
+    if generate_ppt:
+        ppt_path = ppt_service.generate_presentation(
+            period_label=analytics.period_label,
+            total_calls=total_calls,
+            sessions=sessions,
+            kwt=kwt
+        )
+
+        with open(ppt_path, 'rb') as ppt_file:
+            st.download_button(
+                label='Скачать презентацию',
+                data=ppt_file,
+                file_name='ev_charging_report.pptx',
+                mime='application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                use_container_width=True
+            )
+
+        st.success('PPTX презентация успешно сгенерирована.')
+
     with st.expander('Проверка данных'):
         st.write('TOP-5 станций')
         st.dataframe(analytics.top5_df, use_container_width=True)
@@ -182,14 +212,6 @@ try:
         st.dataframe(analytics.topics_df, use_container_width=True)
         st.write('Динамика')
         st.dataframe(analytics.dynamics_df, use_container_width=True)
-
-    logger.info(
-        'Rendered analytics for period {} - {}. Total calls: {}. Top station: {}',
-        start_date,
-        end_date,
-        total_calls,
-        top_station
-    )
 
 except Exception as error:
     logger.exception(error)
