@@ -13,6 +13,8 @@ from services.layout_service import LayoutService
 EXPORTS_DIR = Path('data/exports')
 EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
+TEMPLATE_PATH = Path('templates/base_template.pptx')
+
 
 class PPTService:
     """Production PPTX rendering engine."""
@@ -20,6 +22,15 @@ class PPTService:
     def __init__(self):
         self.layout_service = LayoutService()
         self.layout = self.layout_service.load_layout()
+
+    def _load_presentation(self) -> Presentation:
+
+        if TEMPLATE_PATH.exists():
+            logger.info('Using template PPTX: {}', TEMPLATE_PATH)
+            return Presentation(str(TEMPLATE_PATH))
+
+        logger.warning('Template PPTX not found. Using fallback presentation.')
+        return Presentation()
 
     def generate_presentation(
         self,
@@ -32,7 +43,7 @@ class PPTService:
         dynamics_chart_path: str | None = None
     ) -> str:
 
-        presentation = Presentation()
+        presentation = self._load_presentation()
 
         presentation.slide_width = Inches(
             self.layout['slide']['width']
