@@ -36,8 +36,6 @@ class PPTService:
         self,
         period_label: str,
         total_calls: int,
-        sessions: int,
-        kwt: int,
         topics_chart_path: str | None = None,
         top5_chart_path: str | None = None,
         dynamics_chart_path: str | None = None
@@ -75,17 +73,12 @@ class PPTService:
         metrics_box = slide.shapes.add_textbox(
             Inches(0.3),
             Inches(0.75),
-            Inches(6),
+            Inches(4),
             Inches(0.4)
         )
 
         metrics_frame = metrics_box.text_frame
-
-        metrics_frame.text = (
-            f'Обращений: {total_calls}    '
-            f'Сессии: {sessions}    '
-            f'кВт: {kwt}'
-        )
+        metrics_frame.text = f'Обращений: {total_calls}'
 
         if topics_chart_path:
 
