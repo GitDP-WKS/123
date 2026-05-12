@@ -8,6 +8,7 @@ from services.chart_service import ChartService
 from services.export_service import ExportService
 from services.google_service import GoogleSheetsService
 from services.ppt_service import PPTService
+from services.preview_service import PreviewService
 from services.validation_service import ValidationService
 from ui.styles import load_global_styles
 
@@ -93,6 +94,7 @@ try:
     chart_service = ChartService()
     ppt_service = PPTService()
     export_service = ExportService()
+    preview_service = PreviewService()
 
     source_df = normalize_source_columns(load_source_data())
 
@@ -143,6 +145,11 @@ try:
     st.divider()
 
     st.subheader('Preview будущего слайда')
+
+    st.markdown(
+        preview_service.render_slide_container(),
+        unsafe_allow_html=True
+    )
 
     col1, col2 = st.columns(2)
 
