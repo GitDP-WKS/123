@@ -15,11 +15,7 @@ class ChartService:
 
         chart_df = df.copy()
 
-        chart_df['Тематика'] = (
-            chart_df['Тематика']
-            .astype(str)
-            .str.strip()
-        )
+        chart_df['Тематика'] = chart_df['Тематика'].astype(str).str.strip()
 
         chart_df['Подрядчик'] = (
             chart_df['Подрядчик']
@@ -45,6 +41,8 @@ class ChartService:
             .reset_index()
             .sort_values('Количество', ascending=False)
         )
+
+        totals = totals[totals['Количество'] > 0]
 
         topics = totals['Тематика'].tolist()
 
@@ -143,7 +141,7 @@ class ChartService:
 
         figure.update_layout(
             template='simple_white',
-            height=500,
+            height=max(340, len(topics) * 52),
             margin=dict(l=250, r=70, t=10, b=30),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
@@ -180,7 +178,7 @@ class ChartService:
         chart_df = df.copy()
 
         chart_df['ЭЗС'] = chart_df['ЭЗС'].apply(
-            lambda x: self._wrap_text(x, width=8)
+            lambda x: self._wrap_text(x, width=18)
         )
 
         figure = go.Figure()
@@ -190,20 +188,20 @@ class ChartService:
             y=chart_df['Количество'],
             text=chart_df['Количество'],
             textposition='outside',
-            textfont=dict(size=14, color='#111111'),
+            textfont=dict(size=15, color='#111111'),
             marker_color='#0070C0',
-            width=0.55
+            width=0.58
         )
 
         figure.update_layout(
             template='simple_white',
-            height=390,
-            margin=dict(l=10, r=10, t=20, b=90),
+            height=430,
+            margin=dict(l=10, r=10, t=20, b=120),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
             font=dict(
                 family='Segoe UI',
-                size=11,
+                size=12,
                 color='#222222'
             ),
             showlegend=False
@@ -211,7 +209,7 @@ class ChartService:
 
         figure.update_xaxes(
             showgrid=False,
-            tickfont=dict(size=10)
+            tickfont=dict(size=12)
         )
 
         figure.update_yaxes(
