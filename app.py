@@ -117,45 +117,22 @@ try:
     top5_chart = chart_service.build_top5_chart(analytics.top5_df)
     dynamics_chart = chart_service.build_dynamics_chart()
 
-    col1, col2 = st.columns(2)
+    st.markdown('## Обращения по ЭЗС с разбивкой по тематикам')
+    st.plotly_chart(topics_chart, use_container_width=True)
 
-    with col1:
-        st.markdown('## Обращения по ЭЗС с разбивкой по тематикам')
-        st.plotly_chart(topics_chart, use_container_width=True)
-
-        st.markdown('### Ручные показатели')
-
-        sessions = st.number_input(
-            'Успешные сессии',
-            min_value=0,
-            value=7577,
-            key='sessions_input'
-        )
-
-        kwt = st.number_input(
-            'Количество кВт',
-            min_value=0,
-            value=153517,
-            key='kwt_input'
-        )
-
-    with col2:
-        st.markdown('## ТОП 5 станций за неделю')
-        st.plotly_chart(top5_chart, use_container_width=True)
+    st.markdown('## ТОП 5 станций за неделю')
+    st.plotly_chart(top5_chart, use_container_width=True)
 
     st.markdown('## Количество принятых обращений')
     st.plotly_chart(dynamics_chart, use_container_width=True)
 
     st.divider()
 
-    export_col1, export_col2 = st.columns([1, 2])
-
-    with export_col1:
-        generate_ppt = st.button(
-            'Сгенерировать PPTX',
-            use_container_width=True,
-            type='primary'
-        )
+    generate_ppt = st.button(
+        'Сгенерировать PPTX',
+        use_container_width=True,
+        type='primary'
+    )
 
     if generate_ppt:
 
@@ -177,8 +154,6 @@ try:
         ppt_path = ppt_service.generate_presentation(
             period_label=analytics.period_label,
             total_calls=total_calls,
-            sessions=sessions,
-            kwt=kwt,
             topics_chart_path=topics_chart_path,
             top5_chart_path=top5_chart_path,
             dynamics_chart_path=dynamics_chart_path
@@ -187,8 +162,6 @@ try:
         history_service.save_export_record(
             period_label=analytics.period_label,
             total_calls=total_calls,
-            sessions=sessions,
-            kwt=kwt,
             ppt_path=ppt_path
         )
 
