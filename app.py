@@ -7,6 +7,7 @@ from services.analytics_service import AnalyticsService
 from services.chart_service import ChartService
 from services.export_service import ExportService
 from services.google_service import GoogleSheetsService
+from services.history_service import HistoryService
 from services.ppt_service import PPTService
 from services.preview_service import PreviewService
 from services.validation_service import ValidationService
@@ -95,6 +96,7 @@ try:
     ppt_service = PPTService()
     export_service = ExportService()
     preview_service = PreviewService()
+    history_service = HistoryService()
 
     source_df = normalize_source_columns(load_source_data())
 
@@ -202,6 +204,14 @@ try:
             dynamics_chart_path=dynamics_chart_path
         )
 
+        history_service.save_export_record(
+            period_label=analytics.period_label,
+            total_calls=total_calls,
+            sessions=sessions,
+            kwt=kwt,
+            ppt_path=ppt_path
+        )
+
         with open(ppt_path, 'rb') as ppt_file:
             st.download_button(
                 label='Скачать презентацию',
@@ -212,6 +222,17 @@ try:
             )
 
         st.success('PPTX презентация успешно сгенерирована.')
+
+    st.divider()
+
+    st.subheader('История экспортов')
+
+    recent_exports = history_service.get_recent_exports()
+
+    if recent_exports:
+        st.dataframe(recent_exports, use_container_width=True)
+    else:
+        st.info('История экспортов пока пуста.')
 
     with st.expander('Проверка данных'):
         st.write('TOP-5 станций')
