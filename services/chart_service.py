@@ -67,10 +67,19 @@ class ChartService:
             'Прочие': '#00B050'
         }
 
-        for idx, topic in enumerate(reversed(topics)):
+        tick_positions = []
+        tick_labels = []
+
+        total_topics = len(topics)
+
+        for idx, topic in enumerate(topics):
 
             topic_data = grouped[grouped['Тематика'] == topic]
-            base_y = idx * 2
+
+            y_base = (total_topics - idx) * 2
+
+            tick_positions.append(y_base + 0.15)
+            tick_labels.append(topic)
 
             e_prom_value = 0
             nsp_value = 0
@@ -96,14 +105,15 @@ class ChartService:
                 figure.add_trace(
                     go.Bar(
                         x=[total_other],
-                        y=[base_y],
+                        y=[y_base],
                         orientation='h',
-                        width=0.24,
+                        width=0.26,
                         marker_color=colors['Прочие'],
                         text=[total_other],
                         textposition='outside',
+                        textfont=dict(size=16),
                         name='Прочие вопросы',
-                        showlegend=(idx == 0)
+                        showlegend=True
                     )
                 )
 
@@ -114,14 +124,15 @@ class ChartService:
                 figure.add_trace(
                     go.Bar(
                         x=[e_prom_value],
-                        y=[base_y],
+                        y=[y_base],
                         orientation='h',
                         width=0.22,
                         marker_color=colors['E-Prom'],
                         text=[e_prom_value],
                         textposition='outside',
+                        textfont=dict(size=15),
                         name='E-Prom',
-                        showlegend=(idx == 0)
+                        showlegend=(idx == 1)
                     )
                 )
 
@@ -130,21 +141,24 @@ class ChartService:
                 figure.add_trace(
                     go.Bar(
                         x=[nsp_value],
-                        y=[base_y + 0.30],
+                        y=[y_base + 0.32],
                         orientation='h',
                         width=0.22,
                         marker_color=colors['NSP'],
                         text=[nsp_value],
                         textposition='outside',
+                        textfont=dict(size=15),
                         name='NSP',
-                        showlegend=(idx == 0)
+                        showlegend=(idx == 1)
                     )
                 )
 
+        max_value = max(grouped['Количество'].max(), 10)
+
         figure.update_layout(
             template='simple_white',
-            height=720,
-            margin=dict(l=430, r=120, t=30, b=80),
+            height=760,
+            margin=dict(l=460, r=120, t=20, b=90),
             paper_bgcolor='#F2F2F2',
             plot_bgcolor='#F2F2F2',
             font=dict(
@@ -152,21 +166,23 @@ class ChartService:
                 size=15,
                 color='#333333'
             ),
-            bargap=0.60,
+            bargap=0.68,
             legend=dict(
                 orientation='h',
-                y=-0.12,
+                y=-0.14,
                 x=0.5,
-                xanchor='center'
+                xanchor='center',
+                font=dict(size=16)
             ),
             xaxis=dict(
                 visible=False,
-                range=[0, max(grouped['Количество'].max() + 5, 20)]
+                range=[0, max_value + 4]
             ),
             yaxis=dict(
                 tickmode='array',
-                tickvals=[i * 2 + 0.15 for i in range(len(topics))],
-                ticktext=list(reversed(topics)),
+                tickvals=tick_positions,
+                ticktext=tick_labels,
+                tickfont=dict(size=16),
                 showgrid=False
             )
         )
