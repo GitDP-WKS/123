@@ -56,13 +56,8 @@ class ChartService:
             )
         )
 
-        figure.update_xaxes(
-            gridcolor='#E5E7EB'
-        )
-
-        figure.update_yaxes(
-            showgrid=False
-        )
+        figure.update_xaxes(gridcolor='#E5E7EB')
+        figure.update_yaxes(showgrid=False)
 
         return figure
 
@@ -107,51 +102,42 @@ class ChartService:
             showgrid=False
         )
 
-        figure.update_yaxes(
-            gridcolor='#E5E7EB'
-        )
+        figure.update_yaxes(gridcolor='#E5E7EB')
 
         return figure
 
-    def build_dynamics_chart(
-        self,
-        df: pd.DataFrame,
-        sessions: int,
-        kwt: int
-    ):
+    def build_dynamics_chart(self):
 
-        figure = go.Figure()
+        months = [
+            'Май 2025', 'Июн 2025', 'Июл 2025', 'Авг 2025',
+            'Сен 2025', 'Окт 2025', 'Ноя 2025', 'Дек 2025',
+            'Янв 2026', 'Фев 2026', 'Мар 2026', 'Апр 2026', 'Май 2026'
+        ]
 
-        figure.add_trace(
-            go.Bar(
-                x=df['Дата'],
-                y=df['Количество'],
-                name='Обращения',
-                marker_color='#0B5FFF',
-                text=df['Количество'],
-                textposition='outside'
-            )
-        )
+        values = [120, 135, 128, 144, 151, 165, 170, 168, 180, 176, 184, 193, 205]
 
-        figure.add_trace(
-            go.Scatter(
-                x=df['Дата'],
-                y=[sessions for _ in range(len(df))],
-                mode='lines+markers+text',
-                text=[sessions for _ in range(len(df))],
-                textposition='top center',
-                name='Сессии',
-                line=dict(
-                    color='#111827',
-                    width=3
+        colors = [
+            '#0B5FFF', '#111827', '#16A34A', '#9333EA',
+            '#EA580C', '#0891B2', '#DC2626', '#7C3AED',
+            '#2563EB', '#059669', '#D97706', '#DB2777', '#0F172A'
+        ]
+
+        figure = go.Figure(
+            data=[
+                go.Bar(
+                    x=months,
+                    y=values,
+                    text=values,
+                    textposition='outside',
+                    marker_color=colors
                 )
-            )
+            ]
         )
 
         figure.update_layout(
             template='plotly_white',
             height=430,
-            margin=dict(l=20, r=20, t=50, b=20),
+            margin=dict(l=20, r=20, t=50, b=40),
             plot_bgcolor='white',
             paper_bgcolor='white',
             font=dict(
@@ -159,21 +145,10 @@ class ChartService:
                 size=12,
                 color='#111827'
             ),
-            legend=dict(
-                orientation='h',
-                yanchor='bottom',
-                y=1.02,
-                xanchor='right',
-                x=1
-            )
+            showlegend=False
         )
 
-        figure.update_xaxes(
-            showgrid=False
-        )
-
-        figure.update_yaxes(
-            gridcolor='#E5E7EB'
-        )
+        figure.update_xaxes(showgrid=False)
+        figure.update_yaxes(gridcolor='#E5E7EB')
 
         return figure
