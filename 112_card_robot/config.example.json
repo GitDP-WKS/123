@@ -1,0 +1,22 @@
+{
+  "site_url": "https://112.tatar.ru",
+  "cards_url": "https://112.tatar.ru/PUT_REAL_CARDS_PAGE_HERE",
+  "login": "PUT_LOGIN_HERE",
+  "password": "PUT_PASSWORD_HERE",
+  "headless": false,
+  "viewport_width": 1920,
+  "viewport_height": 1080,
+  "check_interval_sec": 2,
+  "page_load_timeout_ms": 30000,
+  "action_timeout_ms": 5000,
+  "after_click_wait_ms": 1500,
+  "max_cards_per_cycle": 20,
+  "max_recovery_attempts": 3,
+  "new_cards_selector": "PUT_REAL_FIRST_COLUMN_CARD_SELECTOR_HERE",
+  "login_selector": "input[type='text']",
+  "password_selector": "input[type='password']",
+  "submit_selector": "button:has-text('Войти')",
+  "telegram_enabled": false,
+  "telegram_bot_token": "",
+  "telegram_chat_id": ""
+}
