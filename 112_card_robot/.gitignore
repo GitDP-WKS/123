@@ -1,0 +1,6 @@
+.venv/
+config.json
+logs/
+screenshots/
+__pycache__/
+*.pyc
